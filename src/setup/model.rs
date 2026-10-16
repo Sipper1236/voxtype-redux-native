@@ -650,22 +650,32 @@ const COHERE_MODELS: &[CohereModelInfo] = &[
 /// quantization. The intermediate and 4 GB variants are still usable by path.
 pub(crate) struct CohereGgufModelInfo {
     pub name: &'static str,
+    /// R2 directory under the `cohere` prefix. Spelled out rather than
+    /// derived from `name` so the mirrored layout stays greppable.
+    pub r2_dir: &'static str,
     pub size: u64,
     pub sha256: &'static str,
     pub description: &'static str,
 }
 
+/// Upstream these were mirrored from, and the revision the pinned sha256s
+/// below were taken at. The runtime never fetches from here - downloads go
+/// to R2 - but whoever re-mirrors needs to know the source of truth.
+#[allow(dead_code)]
 const COHERE_GGUF_REPO: &str = "handy-computer/cohere-transcribe-03-2026-gguf";
+#[allow(dead_code)]
 const COHERE_GGUF_REVISION: &str = "ab667acedcb5d8d56837ef3ed3568c3ad50dde47";
 const COHERE_GGUF_MODELS: &[CohereGgufModelInfo] = &[
     CohereGgufModelInfo {
         name: "cohere-transcribe-03-2026-Q4_K_M.gguf",
+        r2_dir: "cohere-transcribe-03-2026-q4_k_m-gguf",
         size: 1_558_162_944,
         sha256: "0ea56826d8bd5d74b7143a4a04e022dc1bb75452cfae49d98b6acb0c1d16a1fb",
         description: "Q4_K_M, smaller and tested on Intel Vulkan",
     },
     CohereGgufModelInfo {
         name: "cohere-transcribe-03-2026-Q8_0.gguf",
+        r2_dir: "cohere-transcribe-03-2026-q8_0-gguf",
         size: 2_410_655_232,
         sha256: "931916663432fd895423a4291a8400221802b288967ca2d435fc5e3141c9e71e",
         description: "Q8_0, larger reference quantization",
@@ -680,9 +690,15 @@ pub(crate) fn find_cohere_gguf_model(name: &str) -> Option<&'static CohereGgufMo
     COHERE_GGUF_MODELS.iter().find(|model| model.name == name)
 }
 
+/// Both quantizations are mirrored to R2 under the `cohere` prefix. The
+/// runtime never reaches HuggingFace: see the R2-only policy from #459.
+/// `COHERE_GGUF_REPO` and `COHERE_GGUF_REVISION` stay as provenance for
+/// whoever re-mirrors these, and as the source of the pinned sha256s.
 fn cohere_gguf_url(model: &CohereGgufModelInfo) -> String {
     format!(
-        "https://huggingface.co/{COHERE_GGUF_REPO}/resolve/{COHERE_GGUF_REVISION}/{}",
+        "{}/cohere/{}/{}",
+        crate::setup::manifest::MODELS_BASE_URL,
+        model.r2_dir,
         model.name
     )
 }
@@ -5219,6 +5235,7 @@ mode = "type"
         let path = dir.path().join("cohere.gguf");
         let model = CohereGgufModelInfo {
             name: "cohere.gguf",
+            r2_dir: "cohere-gguf-test",
             size: 11,
             sha256: "70d5523972d92139e4d1f62ee3d7cd79054f08ac90b5ba3b87df19c08adb3b17",
             description: "test fixture",

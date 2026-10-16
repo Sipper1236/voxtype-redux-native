@@ -145,11 +145,17 @@ mod tests {
 
     #[test]
     fn rejects_invalid_settings() {
-        let mut config = CohereConfig::default();
-        config.max_chunk_secs = 36;
-        assert!(CohereChunking::new(&config).is_err());
-        config.max_chunk_secs = 35;
-        config.boundary_search_secs = f32::NAN;
-        assert!(CohereChunking::new(&config).is_err());
+        let over_window = CohereConfig {
+            max_chunk_secs: 36,
+            ..Default::default()
+        };
+        assert!(CohereChunking::new(&over_window).is_err());
+
+        let not_a_number = CohereConfig {
+            max_chunk_secs: 35,
+            boundary_search_secs: f32::NAN,
+            ..Default::default()
+        };
+        assert!(CohereChunking::new(&not_a_number).is_err());
     }
 }
