@@ -155,10 +155,11 @@ fn get_downloaded_models() -> Vec<(String, bool)> {
             }
 
             // Check for Parakeet models (directories with encoder-model.onnx)
-            if path.is_dir() && name.contains("parakeet") {
-                if path.join("encoder-model.onnx").exists() {
-                    models.push((name, true)); // true = Parakeet
-                }
+            if path.is_dir()
+                && name.contains("parakeet")
+                && path.join("encoder-model.onnx").exists()
+            {
+                models.push((name, true)); // true = Parakeet
             }
         }
     }
@@ -493,7 +494,7 @@ pub fn run(state_file: PathBuf) -> ! {
     let initial_state = read_state_from_file(&state_file);
 
     // Update status item with initial state
-    let _ = status_item.set_text(initial_state.status_text());
+    status_item.set_text(initial_state.status_text());
 
     // Create tray icon
     let tray = TrayIconBuilder::new()
@@ -675,8 +676,8 @@ pub fn run(state_file: PathBuf) -> ! {
             let new_state = read_state_from_file(&state_file);
 
             if new_state != last_state {
-                let _ = tray.set_title(Some(new_state.icon()));
-                let _ = status_item.set_text(new_state.status_text());
+                tray.set_title(Some(new_state.icon()));
+                status_item.set_text(new_state.status_text());
                 last_state = new_state;
             }
         }

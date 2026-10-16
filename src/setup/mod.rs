@@ -151,7 +151,7 @@ pub fn detect_display_server() -> DisplayServer {
     // Check for macOS first
     #[cfg(target_os = "macos")]
     {
-        return DisplayServer::MacOS;
+        DisplayServer::MacOS
     }
 
     #[cfg(not(target_os = "macos"))]

@@ -503,6 +503,7 @@ fn is_keystroke_method(name: &str) -> bool {
 /// (clipboard mode, or a `driver_order` of clipboard drivers) never press a
 /// key, and building the guard costs hundreds of milliseconds on hosts with
 /// many input devices (#543), so they skip it.
+#[cfg(target_os = "linux")]
 fn chain_synthesizes_keystrokes<'a>(names: impl IntoIterator<Item = &'a str>) -> bool {
     names.into_iter().any(is_keystroke_method)
 }
@@ -522,6 +523,7 @@ pub async fn output_with_fallback(
     // from combining with Super/Ctrl/Alt/Shift and firing compositor or
     // application keybindings. Disabled and timed-out cases both leave the
     // chain runnable; only the latter skips keystroke-synthesizing methods.
+    #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
     let mut skip_keystroke_methods = false;
     // The evdev-based modifier_guard is Linux-only. macOS uses its own
     // wait_for_modifiers_release in osascript.rs and gets called separately
@@ -685,6 +687,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "linux")]
     fn test_chain_synthesizes_keystrokes() {
         assert!(!chain_synthesizes_keystrokes(["clipboard (wl-copy)"]));
         assert!(!chain_synthesizes_keystrokes([
