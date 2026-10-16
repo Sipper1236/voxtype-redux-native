@@ -147,13 +147,11 @@ impl HotkeyListener for RdevHotkeyListener {
                             let _ = tx_clone.blocking_send(HotkeyEvent::Cancel);
                         }
                     }
-                    EventType::KeyRelease(key) => {
-                        if key == target_key {
-                            let mut last = last_release_clone.lock().unwrap();
-                            if last.elapsed() > Duration::from_millis(debounce_ms) {
-                                *last = Instant::now();
-                                let _ = tx_clone.blocking_send(HotkeyEvent::Released);
-                            }
+                    EventType::KeyRelease(key) if key == target_key => {
+                        let mut last = last_release_clone.lock().unwrap();
+                        if last.elapsed() > Duration::from_millis(debounce_ms) {
+                            *last = Instant::now();
+                            let _ = tx_clone.blocking_send(HotkeyEvent::Released);
                         }
                     }
                     _ => {}

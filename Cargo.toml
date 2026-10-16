@@ -91,6 +91,10 @@ ndarray = { version = "0.16", optional = true }
 half = { version = "2", optional = true }
 tokenizers = { version = "0.20", optional = true, default-features = false, features = ["onig"] }
 transcribe-cpp = { version = "=0.2.3", optional = true, default-features = false }
+# Inverse text normalization: spoken-form numbers/dates/currency to written
+# form ("twenty five dollars" -> "$25"). Pure Rust port of NeMo text
+# processing; grammars are compiled in, so no runtime data files.
+text-processing-rs = { version = "0.2", optional = true }
 rustfft = { version = "6", optional = true }
 
 # OpenVINO GenAI backend (Intel NPU/CPU/GPU via OpenVINO GenAI WhisperPipeline)
@@ -169,7 +173,7 @@ nix = { version = "0.29", features = ["signal", "process"] }  # Unix signals for
 zbus = { version = "4", default-features = false, features = ["tokio"] }
 
 [features]
-default = []
+default = ["itn"]
 # OSD frontends. Each binary is gated on its own feature so users can
 # build only the rendering stack they need. Real GUI deps land in
 # Commits 4a/4b; the lists below grow then.
@@ -203,6 +207,11 @@ parakeet-migraphx = ["parakeet", "parakeet-rs/migraphx"]
 parakeet-coreml = ["parakeet", "parakeet-rs/coreml"]
 # Dynamic loading for system ONNX Runtime (used by Nix builds)
 parakeet-load-dynamic = ["parakeet", "parakeet-rs/load-dynamic"]
+# Inverse text normalization for dictated numbers, dates, currency and URLs.
+# On by default: pure Rust, no native deps, so every release build ships it
+# and `[text] format_numbers` works without a custom build.
+itn = ["dep:text-processing-rs"]
+
 # Shared ONNX dependencies for engines using fbank/CTC preprocessing
 onnx-common = ["dep:ort", "dep:ndarray", "dep:rustfft"]
 # Marker features that aggregate per-engine GPU EP flags. Each engine's

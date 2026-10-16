@@ -82,6 +82,13 @@ pub fn load_config(path: Option<&Path>) -> Result<Config, VoxtypeError> {
                     home
                 );
             }
+            if config.text.format_numbers && !cfg!(feature = "itn") {
+                tracing::warn!(
+                    "[text] format_numbers is set, but this build was compiled \
+                     without the `itn` feature, so numbers are left as spoken. \
+                     Rebuild with `--features itn` to use it."
+                );
+            }
         } else {
             tracing::debug!("Config file not found at {:?}, using defaults", path);
         }

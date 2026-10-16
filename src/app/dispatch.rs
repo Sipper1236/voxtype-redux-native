@@ -53,12 +53,15 @@ pub(crate) async fn dispatch(
     // On macOS, detect if launched as app bundle executable (no subcommand, binary inside .app)
     #[cfg(target_os = "macos")]
     let default_command = if cli.command.is_none() {
-        std::env::current_exe()
+        let launched_from_app_bundle = std::env::current_exe()
             .ok()
             .and_then(|p| p.to_str().map(|s| s.contains(".app/Contents/MacOS/")))
-            .unwrap_or(false)
-            .then_some(Commands::AppLaunch)
-            .unwrap_or(Commands::Daemon)
+            .unwrap_or(false);
+        if launched_from_app_bundle {
+            Commands::AppLaunch
+        } else {
+            Commands::Daemon
+        }
     } else {
         Commands::Daemon // unused, cli.command is Some
     };

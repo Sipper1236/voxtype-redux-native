@@ -131,8 +131,19 @@ fn write_state_file(path: &PathBuf, state: &str) {
         }
     }
 
-    if let Err(e) = std::fs::write(path, state) {
+    // Write to a sibling and rename, rather than writing in place.
+    // std::fs::write truncates before it writes, so a reader polling this
+    // file - waybar runs `voxtype status --follow` against it - can catch the
+    // empty window and read "" as the state. rename(2) is atomic within a
+    // filesystem, so a reader sees either the old contents or the new.
+    let tmp = path.with_extension(format!("tmp.{}", std::process::id()));
+    if let Err(e) = std::fs::write(&tmp, state) {
         tracing::warn!("Failed to write state file: {}", e);
+        return;
+    }
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        tracing::warn!("Failed to replace state file: {}", e);
+        let _ = std::fs::remove_file(&tmp);
     } else {
         tracing::trace!("State file updated: {}", state);
     }
@@ -3673,6 +3684,11 @@ impl Daemon {
                             // Send notification on successful output
                             output::send_transcription_notification(
                                 &final_text,
+                                self.config
+                                    .output
+                                    .notification
+                                    .show_edits
+                                    .then_some(text.as_str()),
                                 self.config.output.notification.show_engine_icon,
                                 self.config.engine,
                                 &self.config.output.notification.urgency,

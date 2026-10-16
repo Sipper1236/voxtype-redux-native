@@ -218,6 +218,10 @@ on_transcription = true
 # Show notification when no speech is detected and the recording is discarded
 on_no_speech = true
 
+# When text cleanup or post_process changed the transcription, show the edits
+# as a word diff in the notification instead of a plain preview
+show_edits = true
+
 # [output.post_process]
 # Pipe transcribed text through an external command for cleanup before output.
 # The command receives text on stdin and outputs processed text on stdout.

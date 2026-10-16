@@ -19,6 +19,7 @@ Voxtype is a push-to-talk voice-to-text tool for Linux. Optimized for Wayland, w
 - [CLI Backend (whisper-cli)](#cli-backend-whisper-cli)
 - [Eager Processing](#eager-processing)
 - [Output Modes](#output-modes)
+- [Dictation Cleanup](#dictation-cleanup)
 - [Post-Processing with LLMs](#post-processing-with-llms)
 - [Profiles](#profiles)
 - [Voice Activity Detection](#voice-activity-detection)
@@ -1930,6 +1931,82 @@ Output hooks are generic shell commands—you can use them for any compositor or
 - **River**: Use `riverctl` commands
 - **Notifications**: `pre_output_command = "notify-send 'Typing...'"`
 - **Logging**: `post_output_command = "echo $(date) >> ~/voxtype.log"`
+
+---
+
+## Dictation Cleanup
+
+Speech isn't writing. You restart sentences, stutter, say "scratch that", and pause in places a period doesn't belong. Voxtype can clean that up with a few small rule-based stages that run on your machine in well under a millisecond. There is no model to download and no LLM involved.
+
+Filler-word removal is on by default. The other three stages are off until you turn them on:
+
+```toml
+[text]
+collapse_restarts = true       # restarts, stutters, "scratch that"
+repair_sentence_breaks = true  # premature periods, lost question marks
+format_numbers = true          # "three thirty p m" -> "3:30 p.m."
+```
+
+Each one is also a `voxtype config set` key, so you can try one at a time:
+
+```bash
+voxtype config set text.collapse_restarts true
+```
+
+### What each stage does
+
+**Restarts and retractions** (`collapse_restarts`). When you interrupt yourself and start over, the engine usually puts a period where you paused:
+
+```text
+so the independent tool. The independent booking tool costs $25 a month
+  -> so the independent booking tool costs $25 a month
+```
+
+Stutters ("the the the") collapse, and an explicit retraction drops the clause before it:
+
+```text
+I think we should ship it on Tuesday. Scratch that. We should ship it on Wednesday.
+  -> We should ship it on Wednesday.
+```
+
+The recognised retractions are "scratch that", "strike that", "I'm sorry", "I mean", "I meant to say" and "or rather".
+
+**Sentence breaks** (`repair_sentence_breaks`). A period followed by a lower-case word is the engine contradicting itself, so the fragment is rejoined. A sentence that opens with a question word and inverts its subject gets its question mark back:
+
+```text
+what are the other phases? we have here.
+  -> what are the other phases we have here?
+```
+
+**Numbers, times and money** (`format_numbers`). Dictated quantities become written ones:
+
+```text
+it will cost twenty five dollars a month  ->  it will cost $25 a month
+meet me at three thirty p m               ->  meet me at 3:30 p.m.
+```
+
+It only touches sentences that are about a quantity, so "one of the things we need" stays prose. Engines that already write digits, like Parakeet, leave it less to do.
+
+### Why most of it is off by default
+
+A false positive deletes words you said. That's worse than leaving an "um" in, so these stages are conservative, and whether the trade is worth it is your call, not a default. Try them on your own dictation for a day.
+
+### Order and your own rules
+
+Cleanup runs in this order: filler words, spoken punctuation, restarts, sentence breaks, numbers, then your `replacements`. Your own rules always get the last word. `[output.post_process]` runs after all of it.
+
+### Seeing what changed
+
+When cleanup or post-processing changed a transcription, the notification shows the edits, with deletions struck through, and an "✎ N edits" title. If you'd rather see the plain text, for example because an LLM `post_process` rewrites whole sentences and the diff gets long:
+
+```toml
+[output.notification]
+show_edits = false
+```
+
+Every release build includes `format_numbers`. If you build voxtype yourself with `--no-default-features`, add `--features itn` back, or voxtype logs a warning at startup and leaves numbers as spoken.
+
+See [CONFIGURATION.md](CONFIGURATION.md#text) for every option.
 
 ---
 
