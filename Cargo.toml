@@ -84,6 +84,9 @@ whisper-rs = "0.16.0"
 
 # Parakeet speech-to-text (optional, ONNX-based)
 parakeet-rs = { version = "0.3.5", optional = true }
+# Native Parakeet C API backend. This allows GGUF models such as Parakeet Redux
+# to run in-process without an HTTP or command adapter.
+libloading = { version = "0.8", optional = true }
 
 # ONNX-based ASR engines (Moonshine, SenseVoice, Paraformer, Dolphin, Omnilingual)
 ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["std", "ndarray", "api-24", "half"] }
@@ -196,6 +199,7 @@ gpu-hipblas = ["whisper-rs/hipblas"]
 ml-diarization = ["dep:ort", "dep:ndarray"]
 # Parakeet backend (ONNX-based, alternative to Whisper)
 parakeet = ["dep:parakeet-rs"]
+parakeet-cpp = ["parakeet", "parakeet-load-dynamic", "dep:libloading"]
 parakeet-cuda = ["parakeet", "parakeet-rs/cuda"]
 parakeet-tensorrt = ["parakeet", "parakeet-rs/tensorrt"]
 parakeet-migraphx = ["parakeet", "parakeet-rs/migraphx"]

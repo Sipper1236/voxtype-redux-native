@@ -28,6 +28,9 @@ enum ParakeetModel {
     Ctc(Mutex<Parakeet>),
     /// TDT model (token-level, better quality output)
     Tdt(Mutex<ParakeetTDT>),
+    /// Redux and other GGUF models through parakeet.cpp's in-process C API.
+    #[cfg(feature = "parakeet-cpp")]
+    Cpp(super::parakeet_cpp::ParakeetCppTranscriber),
 }
 
 /// Parakeet-based transcriber using ONNX Runtime
@@ -42,6 +45,31 @@ impl ParakeetTranscriber {
     /// Create a new Parakeet transcriber
     pub fn new(config: &ParakeetConfig) -> Result<Self, TranscribeError> {
         let model_path = resolve_model_path(&config.model)?;
+
+        // GGUF models use parakeet.cpp directly in this process. No server or
+        // subprocess sits between Voxtype and the native transcription engine.
+        if model_path.extension().is_some_and(|ext| ext == "gguf") {
+            #[cfg(feature = "parakeet-cpp")]
+            {
+                tracing::info!("Loading native Parakeet GGUF model from {:?}", model_path);
+                let start = std::time::Instant::now();
+                let model = super::parakeet_cpp::ParakeetCppTranscriber::new(&model_path)?;
+                tracing::info!(
+                    "Native Parakeet GGUF model loaded in {:.2}s",
+                    start.elapsed().as_secs_f32()
+                );
+                return Ok(Self {
+                    model: ParakeetModel::Cpp(model),
+                    model_type: ParakeetModelType::Tdt,
+                });
+            }
+            #[cfg(not(feature = "parakeet-cpp"))]
+            {
+                return Err(TranscribeError::InitFailed(
+                    "GGUF Parakeet models require a Voxtype build with --features parakeet-cpp and libparakeet.so available at runtime".to_string(),
+                ));
+            }
+        }
 
         // Determine model type: use config override or auto-detect from directory
         let model_type = config
@@ -152,6 +180,8 @@ impl Transcriber for ParakeetTranscriber {
 
                 result.text.trim().to_string()
             }
+            #[cfg(feature = "parakeet-cpp")]
+            ParakeetModel::Cpp(parakeet) => parakeet.transcribe(samples)?,
         };
 
         tracing::info!(
@@ -203,6 +233,20 @@ impl Transcriber for ParakeetTranscriber {
                             e
                         ))
                     })?
+            }
+            #[cfg(feature = "parakeet-cpp")]
+            ParakeetModel::Cpp(parakeet) => {
+                let text = parakeet.transcribe(samples)?;
+                let duration = samples.len() as f32 / 16000.0;
+                return Ok(if text.is_empty() {
+                    vec![]
+                } else {
+                    vec![TimedSegment {
+                        text,
+                        start_secs: 0.0,
+                        end_secs: duration,
+                    }]
+                });
             }
         };
 

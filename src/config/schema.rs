@@ -424,7 +424,7 @@ pub const CONFIG_KEYS: &[KeySpec] = &[
         "Model",
         "Parakeet model directory name under the voxtype models dir.",
     )
-    .for_onnx_engine("parakeet"),
+    .for_engine("parakeet"),
     spec(
         "parakeet.model_type",
         "parakeet",

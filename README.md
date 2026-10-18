@@ -1,3 +1,5 @@
+> **Redux native C API fork:** optional in-process parakeet.cpp support, based on Voxtype 1.1.1. See [build/configuration and limitations](docs/parakeet-cpp-redux.md). The [standalone adapter and benchmarks](https://github.com/Sipper1236/voxtype-redux-adapter) use stock Voxtype and link this fork for comparison.
+
 # Voxtype
 
 [![Voxtype - Voice to Text for Linux](website/images/og-preview.png)](https://voxtype.io)
